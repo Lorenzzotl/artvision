@@ -207,6 +207,49 @@
     }, { passive: true });
   })();
 
+  /* === 05b. HERO SCRUB — o vídeo avança/volta com o scroll =============== */
+
+  // O hero fica pinado por um trecho de scroll e o currentTime do vídeo
+  // acompanha o progresso: descer a página roda o vídeo, subir rebobina.
+  // AJUSTE AQUI a "duração" do efeito mudando o end (+=160% = 1.6 telas).
+  function ligarHeroScrub() {
+    var vHero = document.querySelector(".sec-hero .bgvideo");
+    if (!vHero || MOBILE || REDUZIR) return;
+
+    // Carrega o vídeo já (sem autoplay — quem dá play é o scroll)
+    vHero.dataset.scrub = "1"; // avisa ligarVideosDeFundo para ignorar este
+    vHero.removeAttribute("loop");
+    vHero.preload = "auto";
+    vHero.src = vHero.dataset.src;
+    vHero.pause();
+    vHero.addEventListener("canplay", function () { vHero.classList.add("carregado"); }, { once: true });
+    vHero.addEventListener("error", function () { vHero.remove(); }, { once: true });
+
+    var tempoAlvo = 0;
+
+    ScrollTrigger.create({
+      trigger: ".sec-hero",
+      start: "top top",
+      end: "+=160%",
+      pin: true,
+      scrub: true,
+      onUpdate: function (st) {
+        if (vHero.duration) {
+          // -0.05s para nunca bater no fim exato (evita tela de "vídeo acabou")
+          tempoAlvo = st.progress * (vHero.duration - 0.05);
+        }
+      }
+    });
+
+    // Aproxima o currentTime do alvo com lerp: o seek fica suave mesmo
+    // com scroll rápido, e só busca quando a diferença compensa
+    gsap.ticker.add(function () {
+      if (!vHero.isConnected || !vHero.duration || vHero.seeking) return;
+      var delta = tempoAlvo - vHero.currentTime;
+      if (Math.abs(delta) > 0.02) vHero.currentTime += delta * 0.22;
+    });
+  }
+
   /* === 06. VÍDEOS DE FUNDO =============================================== */
 
   // No mobile os vídeos de fundo NÃO são carregados (fica o poster/gradiente).
@@ -218,6 +261,7 @@
     var io = new IntersectionObserver(function (entradas) {
       entradas.forEach(function (ent) {
         var v = ent.target;
+        if (v.dataset.scrub) return; // o vídeo do hero é controlado pelo scroll
         if (ent.isIntersecting) {
           if (!v.src) {
             v.src = v.dataset.src;
@@ -598,6 +642,7 @@
   ligarLightboxUI();
 
   construirPortfolio().then(function () {
+    ligarHeroScrub();
     ligarVideosDeFundo();
     ligarRoloHorizontal();
     ligarProcesso();
