@@ -265,8 +265,12 @@
       var vHero = document.querySelector(".sec-hero .bgvideo");
       if (vHero && vHero.dataset.srcMobile) {
         if (vHero.dataset.posterMobile) vHero.poster = vHero.dataset.posterMobile;
+        vHero.preload = "metadata";
         vHero.src = vHero.dataset.srcMobile;
-        vHero.addEventListener("canplay", function () { vHero.classList.add("carregado"); }, { once: true });
+        // Visível desde já: o poster 9:16 cobre o carregamento e também o
+        // caso de autoplay bloqueado (ex.: Modo de Baixo Consumo no iPhone).
+        // Se o mp4 não existir, o error abaixo remove o vídeo e volta o gradiente.
+        vHero.classList.add("carregado");
         vHero.addEventListener("error", function () { vHero.remove(); }, { once: true });
         // Toca quando visível, pausa quando o hero sai da tela
         var ioHero = new IntersectionObserver(function (entradas) {

@@ -38,5 +38,7 @@ no lugar — nada quebra.
 - Vídeo só toca quando está visível (IntersectionObserver)
 - Mobile (<768px): sem cursor custom, sem noise, sem pin horizontal —
   o portfólio vira 2 carrosséis horizontais com snap (o próximo card fica
-  "espiando" na direita); só o hero tem vídeo (9:16 leve), o resto usa poster
+  "espiando" na direita). Os vídeos do portfólio tocam normalmente (mudos,
+  só quando visíveis); dos FUNDOS, apenas o hero tem vídeo no celular
+  (o 9:16 leve) — os demais fundos ficam no poster/gradiente
 - `prefers-reduced-motion`: sem preloader, sem parallax, vídeos pausados
