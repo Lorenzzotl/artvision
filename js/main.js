@@ -550,13 +550,15 @@
       ease: "none",
       duration: 3
     });
-    // ...e congelam revelando o "SUA MARCA AQUI — ESTRELANDO"
+    // ...desaparecem no trecho final (para não sobrepor o bloco seguinte)...
+    tl.to(roll, { opacity: 0, duration: 0.3 }, "-=0.45");
+    // ...e só então o "SUA MARCA AQUI — ESTRELANDO" entra congelado
     tl.to(".creditos-final", {
       opacity: 1,
       y: 0,
       ease: "power2.out",
       duration: 0.8
-    }, "-=0.9");
+    }, "-=0.1");
   }
 
   /* === 12. LIGHTBOX COM IRIS WIPE ======================================== */
