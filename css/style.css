@@ -461,6 +461,21 @@ body.modo-cut #rec-label { color: var(--teal); }
 }
 .rolo-head { padding: 0 var(--margem); }
 
+/* Hint de arraste dos carrosséis — só aparece no mobile */
+.rolo-hint {
+  display: none;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--ambar);
+  text-transform: uppercase;
+  margin-top: 0.9em;
+  animation: hint-desliza 1.8s ease-in-out infinite;
+}
+@keyframes hint-desliza {
+  0%, 100% { transform: translateX(0); opacity: 0.7; }
+  50% { transform: translateX(8px); opacity: 1; }
+}
+
 .filmstrip-viewport { overflow: hidden; }
 .filmstrip {
   display: flex;
@@ -485,7 +500,7 @@ body.modo-cut #rec-label { color: var(--teal); }
 .filmstrip::after { bottom: 2px; }
 
 /* No desktop o wrapper .filmcard-slide é "transparente" (vira item do flex);
-   no mobile ele vira uma tela inteira com scroll-snap (ver seção 14) */
+   no mobile ele vira um item dos carrosséis horizontais (ver seção 14) */
 .filmcard-slide { display: contents; }
 
 /* Card do filmstrip (9:16) */
@@ -885,29 +900,52 @@ body.modo-cut #rec-label { color: var(--teal); }
   .hud-side, .hud-frame::before, .hud-frame::after { display: none; }
   .hud { font-size: 9px; }
 
-  /* O ROLO vira feed vertical com scroll-snap (estilo Reels) */
-  .rolo-pin { min-height: 0; display: block; overflow: visible; }
+  /* O ROLO vira 2 CARROSSÉIS horizontais: o card ocupa ~72vw, então o
+     próximo fica "espiando" na direita — convite natural para arrastar */
+  .rolo-pin {
+    min-height: 0;
+    display: block;
+    overflow: visible;
+    padding: 72px 0 40px;
+  }
+  .rolo-hint { display: block; }
   .filmstrip-viewport { overflow: visible; }
   .filmstrip {
     flex-direction: column;
+    align-items: stretch; /* sem isso o carrossel cresce além da tela */
     width: 100%;
-    gap: 0;
+    gap: 22px;
     padding: 0;
   }
   .filmstrip::before, .filmstrip::after { display: none; }
-  .filmcard-slide {
-    /* wrapper de cada card: uma tela por vídeo */
-    display: grid;
-    height: 100svh;
+
+  /* Cada carrossel é uma faixa com scroll horizontal próprio + snap */
+  .carrossel {
+    display: flex;
+    gap: 14px;
     width: 100%;
-    place-items: center;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
+    max-width: 100%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 16px;
+    padding: 30px 16px 50px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* esconde a barra (Firefox) */
   }
-  .filmcard { height: min(72svh, 640px); }
+  .carrossel::-webkit-scrollbar { display: none; } /* idem (WebKit) */
+
+  .carrossel .filmcard-slide {
+    display: block;
+    flex: none;
+    scroll-snap-align: start;
+  }
+  .filmcard {
+    width: min(72vw, 300px);
+    height: auto;
+    aspect-ratio: 9 / 16;
+  }
   .filmcard:hover { transform: none; box-shadow: none; }
   .rolo-ruler { display: none; }
-  html.snap-rolo { scroll-snap-type: y proximity; }
 
   /* Lightbox empilhado no mobile */
   .lightbox-inner { flex-direction: column; gap: 18px; text-align: center; }
@@ -939,7 +977,7 @@ body.modo-cut #rec-label { color: var(--teal); }
   .painel-2, .painel-3 { clip-path: none; position: relative; }
   .processo-pin { height: auto; }
   .fx-noise, .marquee-track, .focus-wheel-track,
-  .rec-dot, .video-fallback, .card-placeholder {
+  .rec-dot, .video-fallback, .card-placeholder, .rolo-hint {
     animation: none !important;
   }
   .creditos-roll { display: none; }
@@ -948,5 +986,6 @@ body.modo-cut #rec-label { color: var(--teal); }
   *, *::before, *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important; /* loops infinitos não "tremem" */
   }
 }

@@ -21,7 +21,8 @@ Landing page one-page cinematográfica do estúdio **ArtVision**. Site 100% est�
 ## Como trocar os vídeos
 
 - **Fundos 16:9** → solte os arquivos em `videos/bg/` como `01.mp4` … `06.mp4`
-  - `01` = hero · `02-04` = painéis "Como funciona" · `05` = créditos finais
+  - `01` = hero (desktop, controlado pelo scroll) · `02-04` = painéis "Como funciona" · `05` = créditos finais
+  - `01-mobile.mp4` = hero no celular (9:16, autoplay em loop)
 - **Portfólio 9:16** → solte em `videos/vertical/` como `01.mp4` … `08.mp4`
 - **Posters** (imagem de capa, opcional) → `videos/posters/` (`bg-01.jpg`, `v-01.jpg` …)
 
@@ -36,5 +37,8 @@ no lugar — nada quebra.
 - Vídeos com lazy load, `preload="metadata"`, sempre `muted` no autoplay
 - Vídeo só toca quando está visível (IntersectionObserver)
 - Mobile (<768px): sem cursor custom, sem noise, sem pin horizontal —
-  o portfólio vira feed vertical com scroll-snap e os fundos usam posters
+  o portfólio vira 2 carrosséis horizontais com snap (o próximo card fica
+  "espiando" na direita). Os vídeos do portfólio tocam normalmente (mudos,
+  só quando visíveis); dos FUNDOS, apenas o hero tem vídeo no celular
+  (o 9:16 leve) — os demais fundos ficam no poster/gradiente
 - `prefers-reduced-motion`: sem preloader, sem parallax, vídeos pausados

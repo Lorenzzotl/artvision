@@ -45,7 +45,9 @@
   var lenis = null;
   var velocidadeScroll = 0; // usada pelo HUD "SHUTTER"
 
-  if (!REDUZIR && window.Lenis) {
+  // Lenis só no desktop: no layout mobile (carrosséis com scroll próprio)
+  // ele interceptaria o wheel/trackpad e impediria o scroll horizontal
+  if (!REDUZIR && !MOBILE && window.Lenis) {
     lenis = new Lenis({ lerp: 0.1, smoothWheel: true });
 
     // Lenis avisa o ScrollTrigger a cada frame de scroll
@@ -207,17 +209,86 @@
     }, { passive: true });
   })();
 
+  /* === 05b. HERO SCRUB — o vídeo avança/volta com o scroll =============== */
+
+  // O hero fica pinado por um trecho de scroll e o currentTime do vídeo
+  // acompanha o progresso: descer a página roda o vídeo, subir rebobina.
+  // AJUSTE AQUI a "duração" do efeito mudando o end (+=160% = 1.6 telas).
+  function ligarHeroScrub() {
+    var vHero = document.querySelector(".sec-hero .bgvideo");
+    if (!vHero || MOBILE || REDUZIR) return;
+
+    // Carrega o vídeo já (sem autoplay — quem dá play é o scroll)
+    vHero.dataset.scrub = "1"; // avisa ligarVideosDeFundo para ignorar este
+    vHero.removeAttribute("loop");
+    vHero.preload = "auto";
+    vHero.src = vHero.dataset.src;
+    vHero.pause();
+    vHero.addEventListener("canplay", function () { vHero.classList.add("carregado"); }, { once: true });
+    vHero.addEventListener("error", function () { vHero.remove(); }, { once: true });
+
+    var tempoAlvo = 0;
+
+    ScrollTrigger.create({
+      trigger: ".sec-hero",
+      start: "top top",
+      end: "+=160%",
+      pin: true,
+      scrub: true,
+      onUpdate: function (st) {
+        if (vHero.duration) {
+          // -0.05s para nunca bater no fim exato (evita tela de "vídeo acabou")
+          tempoAlvo = st.progress * (vHero.duration - 0.05);
+        }
+      }
+    });
+
+    // Aproxima o currentTime do alvo com lerp: o seek fica suave mesmo
+    // com scroll rápido, e só busca quando a diferença compensa
+    gsap.ticker.add(function () {
+      if (!vHero.isConnected || !vHero.duration || vHero.seeking) return;
+      var delta = tempoAlvo - vHero.currentTime;
+      if (Math.abs(delta) > 0.02) vHero.currentTime += delta * 0.22;
+    });
+  }
+
   /* === 06. VÍDEOS DE FUNDO =============================================== */
 
-  // No mobile os vídeos de fundo NÃO são carregados (fica o poster/gradiente).
-  // No desktop, carregam sob demanda quando a seção se aproxima da viewport.
+  // Desktop: todos os fundos carregam sob demanda perto da viewport.
+  // Mobile: só o HERO ganha vídeo (a versão 9:16, leve) — os demais fundos
+  // ficam com poster/gradiente para economizar dados e bateria.
   function ligarVideosDeFundo() {
     var videos = document.querySelectorAll(".bgvideo[data-src]");
-    if (MOBILE || REDUZIR) return; // economia de dados + reduced-motion
+    if (REDUZIR) return; // reduced-motion: tudo parado com poster
+
+    if (MOBILE) {
+      var vHero = document.querySelector(".sec-hero .bgvideo");
+      if (vHero && vHero.dataset.srcMobile) {
+        if (vHero.dataset.posterMobile) vHero.poster = vHero.dataset.posterMobile;
+        vHero.preload = "metadata";
+        vHero.src = vHero.dataset.srcMobile;
+        // Visível desde já: o poster 9:16 cobre o carregamento e também o
+        // caso de autoplay bloqueado (ex.: Modo de Baixo Consumo no iPhone).
+        // Se o mp4 não existir, o error abaixo remove o vídeo e volta o gradiente.
+        vHero.classList.add("carregado");
+        vHero.addEventListener("error", function () { vHero.remove(); }, { once: true });
+        // Toca quando visível, pausa quando o hero sai da tela
+        var ioHero = new IntersectionObserver(function (entradas) {
+          entradas.forEach(function (ent) {
+            if (!vHero.isConnected) return;
+            if (ent.isIntersecting) vHero.play().catch(function () {});
+            else vHero.pause();
+          });
+        }, { threshold: 0.1 });
+        ioHero.observe(vHero);
+      }
+      return;
+    }
 
     var io = new IntersectionObserver(function (entradas) {
       entradas.forEach(function (ent) {
         var v = ent.target;
+        if (v.dataset.scrub) return; // o vídeo do hero é controlado pelo scroll
         if (ent.isIntersecting) {
           if (!v.src) {
             v.src = v.dataset.src;
@@ -315,8 +386,29 @@
           strip.appendChild(slide);
         });
 
+        montarCarrosseisMobile();
         ligarAutoplayDosCards();
       });
+  }
+
+  // No mobile, divide os 8 slides em 2 carrosséis horizontais (4 + 4),
+  // cada um com scroll e snap próprios — o CSS dá o "peek" do próximo card
+  function montarCarrosseisMobile() {
+    if (!MOBILE) return;
+    var strip = document.getElementById("filmstrip");
+    var slides = Array.prototype.slice.call(strip.querySelectorAll(".filmcard-slide"));
+    if (!slides.length) return;
+
+    var linha1 = document.createElement("div");
+    var linha2 = document.createElement("div");
+    linha1.className = linha2.className = "carrossel";
+
+    var metade = Math.ceil(slides.length / 2);
+    slides.forEach(function (slide, i) {
+      (i < metade ? linha1 : linha2).appendChild(slide);
+    });
+    strip.appendChild(linha1);
+    if (linha2.childElementCount) strip.appendChild(linha2); // evita faixa vazia
   }
 
   // Vídeo visível → play; fora da viewport → pause (economia de CPU/bateria)
@@ -343,8 +435,8 @@
     var playhead = document.getElementById("ruler-playhead");
 
     if (MOBILE || REDUZIR) {
-      // Mobile: vira feed vertical com scroll-snap (CSS cuida do layout)
-      document.documentElement.classList.add("snap-rolo");
+      // Mobile: 2 carrosséis horizontais (ver montarCarrosseisMobile + CSS);
+      // reduced-motion: o filmstrip fica com scroll manual (CSS)
       return;
     }
 
@@ -387,21 +479,34 @@
       }
     });
 
-    // Painel 2 abre em íris por cima do 1; depois o 3 por cima do 2
+    // Estrutura: [lê painel 1] [wipe 2] [lê painel 2] [wipe 3] [lê painel 3]
+    // O texto do painel anterior SOME no início de cada wipe — assim nunca
+    // ficam dois textos sobrepostos no meio da transição.
+    tl.to({}, { duration: 0.55 }); // tempo de leitura do painel 1
+
+    tl.addLabel("w1");
+    tl.to(".painel-1 .painel-conteudo",
+      { opacity: 0, y: -36, duration: 0.25, ease: "power1.in" }, "w1");
     tl.fromTo(".painel-2",
       { clipPath: "circle(0% at 50% 50%)" },
-      { clipPath: "circle(142% at 50% 50%)", ease: "power1.inOut", duration: 1 });
+      { clipPath: "circle(142% at 50% 50%)", ease: "power1.inOut", duration: 0.7 }, "w1");
+    tl.fromTo(".painel-2 .painel-conteudo",
+      { opacity: 0, scale: 0.92 },
+      { opacity: 1, scale: 1, duration: 0.45, ease: "power2.out" }, "w1+=0.2");
+
+    tl.to({}, { duration: 0.55 }); // tempo de leitura do painel 2
+
+    tl.addLabel("w2");
+    tl.to(".painel-2 .painel-conteudo",
+      { opacity: 0, y: -36, duration: 0.25, ease: "power1.in" }, "w2");
     tl.fromTo(".painel-3",
       { clipPath: "circle(0% at 50% 50%)" },
-      { clipPath: "circle(142% at 50% 50%)", ease: "power1.inOut", duration: 1 }, "+=0.25");
+      { clipPath: "circle(142% at 50% 50%)", ease: "power1.inOut", duration: 0.7 }, "w2");
+    tl.fromTo(".painel-3 .painel-conteudo",
+      { opacity: 0, scale: 0.92 },
+      { opacity: 1, scale: 1, duration: 0.45, ease: "power2.out" }, "w2+=0.2");
 
-    // Leve zoom no conteúdo de cada painel enquanto ele está em cena
-    gsap.utils.toArray(".painel-conteudo").forEach(function (el) {
-      gsap.fromTo(el, { scale: 0.94 }, {
-        scale: 1,
-        scrollTrigger: { trigger: ".sec-processo", start: "top top", end: "+=220%", scrub: true }
-      });
-    });
+    tl.to({}, { duration: 0.45 }); // tempo de leitura do painel 3
   }
 
   /* === 10. COMPARATIVO — STAGGER ========================================= */
@@ -449,13 +554,15 @@
       ease: "none",
       duration: 3
     });
-    // ...e congelam revelando o "SUA MARCA AQUI — ESTRELANDO"
+    // ...desaparecem no trecho final (para não sobrepor o bloco seguinte)...
+    tl.to(roll, { opacity: 0, duration: 0.3 }, "-=0.45");
+    // ...e só então o "SUA MARCA AQUI — ESTRELANDO" entra congelado
     tl.to(".creditos-final", {
       opacity: 1,
       y: 0,
       ease: "power2.out",
       duration: 0.8
-    }, "-=0.9");
+    }, "-=0.1");
   }
 
   /* === 12. LIGHTBOX COM IRIS WIPE ======================================== */
@@ -598,6 +705,7 @@
   ligarLightboxUI();
 
   construirPortfolio().then(function () {
+    ligarHeroScrub();
     ligarVideosDeFundo();
     ligarRoloHorizontal();
     ligarProcesso();
@@ -612,6 +720,13 @@
 
   // Recalcula as medidas quando tudo (fontes, posters) terminou de carregar
   window.addEventListener("load", function () { ScrollTrigger.refresh(); });
+
+  // O layout mobile/desktop é decidido no carregamento (pins, carrosséis,
+  // vídeo do hero). Se a janela cruzar o breakpoint (girar o tablet,
+  // redimensionar), recarrega para remontar tudo no layout certo.
+  window.matchMedia("(max-width: 768px)").addEventListener("change", function () {
+    location.reload();
+  });
 
   // Âncoras internas respeitando o Lenis
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {

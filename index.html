@@ -82,10 +82,16 @@
          [1] HERO — 001 ABERTURA
          ============================================================ -->
     <section class="sec-hero" id="abertura" data-hud="001 — ABERTURA">
-      <!-- Vídeo de fundo (bg/01.mp4). Se faltar, o gradiente .video-fallback aparece -->
+      <!-- Vídeo de fundo do hero:
+           - desktop: bg/01.mp4 (16:9), controlado pelo scroll (scrub)
+           - mobile:  bg/01-mobile.mp4 (9:16), autoplay em loop
+           Se algum faltar, o gradiente .video-fallback aparece no lugar -->
       <div class="bgvideo-wrap">
         <div class="video-fallback"></div>
-        <video class="bgvideo" data-src="videos/bg/01.mp4" poster="videos/posters/bg-01.jpg"
+        <video class="bgvideo" data-src="videos/bg/01.mp4"
+               data-src-mobile="videos/bg/01-mobile.mp4"
+               data-poster-mobile="videos/posters/bg-01-mobile.jpg"
+               poster="videos/posters/bg-01.jpg"
                muted loop playsinline preload="none"></video>
         <div class="bg-overlay"></div>
       </div>
@@ -127,13 +133,15 @@
 
     <!-- ============================================================
          [2] O ROLO — 002 — portfólio em filmstrip horizontal
-         (no mobile vira feed vertical com scroll-snap)
+         (no mobile vira 2 carrosséis horizontais com "peek" do próximo)
          ============================================================ -->
     <section class="sec-rolo" id="rolo" data-hud="002 — O ROLO">
       <div class="rolo-pin">
         <header class="rolo-head">
           <h2 class="sec-title">O&nbsp;ROLO</h2>
           <p class="sec-kicker">// TRABALHOS SELECIONADOS — CLIQUE PARA DAR PLAY</p>
+          <!-- Hint de arraste: aparece só no mobile (carrosséis) -->
+          <p class="rolo-hint" aria-hidden="true">ARRASTE PARA O LADO&nbsp;→</p>
         </header>
 
         <!-- O filmstrip é preenchido via JS a partir de js/portfolio.json -->
