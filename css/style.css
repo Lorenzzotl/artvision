@@ -1,0 +1,952 @@
+/* ==========================================================================
+   ARTVISION — landing page cinematográfica
+   --------------------------------------------------------------------------
+   Sumário:
+   01. Tokens (cores, fontes, espaçamentos)
+   02. Reset / base
+   03. Camadas globais (noise, scanlines, vinheta)
+   04. HUD de câmera
+   05. Cursor customizado
+   06. Preloader (íris de diafragma)
+   07. Componentes (botões, títulos, vídeo de fundo)
+   08. [1] Hero
+   09. [2] O Rolo (filmstrip)
+   10. [3] Como funciona
+   11. [4] Comparativo (claquete)
+   12. [5] Créditos finais
+   13. Lightbox
+   14. Mobile (<768px)
+   15. prefers-reduced-motion
+   ========================================================================== */
+
+/* === 01. TOKENS ========================================================= */
+:root {
+  --preto: #050505;          /* fundo global */
+  --preto-2: #0b0b0d;        /* fundo de cards / painéis */
+  --branco: #f2efe8;         /* texto principal (branco quente) */
+  --cinza: #8a8781;          /* texto secundário */
+  --ambar: #ffb347;          /* acento primário */
+  --teal: #2dd4bf;           /* acento secundário */
+  --vermelho: #ff3b30;       /* ponto REC */
+  --linha: rgba(242, 239, 232, 0.12);
+
+  --fonte-display: "Syncopate", sans-serif;
+  --fonte-mono: "JetBrains Mono", monospace;
+
+  --margem: clamp(20px, 4vw, 64px);
+  --hud-pad: clamp(14px, 2.2vw, 28px);
+}
+
+/* === 02. RESET / BASE =================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+
+body {
+  background: var(--preto);
+  color: var(--branco);
+  font-family: var(--fonte-mono);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, video { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+::selection { background: var(--ambar); color: var(--preto); }
+
+/* Elementos revelados na entrada (JS anima; sem JS ficam visíveis via <noscript>) */
+.reveal { opacity: 0; transform: translateY(28px); }
+
+/* === 03. CAMADAS GLOBAIS (fixas, pointer-events none) =================== */
+.fx-noise, .fx-scanlines, .fx-vignette {
+  position: fixed; inset: 0;
+  pointer-events: none;
+}
+.fx-noise { z-index: 70; }
+.fx-scanlines { z-index: 71; }
+.fx-vignette { z-index: 72; }
+
+/* Noise animado: textura SVG feTurbulence embutida, bem leve */
+.fx-noise {
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: granulado 0.6s steps(4) infinite;
+}
+@keyframes granulado {
+  0%   { background-position: 0 0; }
+  25%  { background-position: -40px 28px; }
+  50%  { background-position: 32px -44px; }
+  75%  { background-position: -28px -24px; }
+  100% { background-position: 0 0; }
+}
+
+/* Scanlines sutis */
+.fx-scanlines {
+  opacity: 0.35;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 3px,
+    rgba(0, 0, 0, 0.14) 3px 4px
+  );
+}
+
+/* Vinheta de lente */
+.fx-vignette {
+  background: radial-gradient(ellipse 85% 75% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* === 04. HUD DE CÂMERA ================================================== */
+.hud {
+  position: fixed; inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(242, 239, 232, 0.78);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+.hud-corner { position: fixed; display: flex; gap: 0.8em; align-items: center; }
+.hud-tl { top: var(--hud-pad); left: var(--hud-pad); }
+.hud-tr { top: var(--hud-pad); right: var(--hud-pad); }
+.hud-bl { bottom: var(--hud-pad); left: var(--hud-pad); color: var(--ambar); }
+.hud-br { bottom: var(--hud-pad); right: var(--hud-pad); }
+#hud-shutter { color: var(--teal); min-width: 4ch; display: inline-block; }
+
+/* Ponto vermelho do REC piscando */
+.rec-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--vermelho);
+  box-shadow: 0 0 10px var(--vermelho);
+  animation: rec-pisca 1.2s steps(2, start) infinite;
+}
+@keyframes rec-pisca { 50% { opacity: 0.15; } }
+
+/* Quando a seção de créditos entra, o JS adiciona .modo-cut no body */
+body.modo-cut .rec-dot { background: var(--teal); box-shadow: 0 0 10px var(--teal); animation: none; }
+body.modo-cut #rec-label { color: var(--teal); }
+
+/* Label vertical lateral com o nome do estúdio */
+.hud-side {
+  position: fixed;
+  right: calc(var(--hud-pad) - 4px);
+  top: 50%;
+  transform: translateY(-50%);
+  writing-mode: vertical-rl;
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: rgba(242, 239, 232, 0.35);
+}
+
+/* Cantoneiras de frame (traços nos 4 cantos, como viewfinder) */
+.hud-frame::before, .hud-frame::after {
+  content: "";
+  position: fixed;
+  width: 26px; height: 26px;
+  border: 1px solid rgba(242, 239, 232, 0.25);
+}
+.hud-frame::before {
+  top: calc(var(--hud-pad) + 26px); left: var(--hud-pad);
+  border-right: 0; border-bottom: 0;
+}
+.hud-frame::after {
+  bottom: calc(var(--hud-pad) + 26px); right: var(--hud-pad);
+  border-left: 0; border-top: 0;
+}
+
+/* === 05. CURSOR CUSTOMIZADO ============================================ */
+#cursor {
+  position: fixed; top: 0; left: 0;
+  z-index: 90;
+  pointer-events: none;
+  display: none; /* ativado via JS somente em dispositivos com mouse */
+}
+@media (hover: hover) and (pointer: fine) {
+  #cursor { display: block; }
+  body.tem-cursor, body.tem-cursor a, body.tem-cursor button,
+  body.tem-cursor .filmcard { cursor: none; }
+}
+.cursor-ring {
+  position: absolute;
+  width: 44px; height: 44px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 179, 71, 0.9);
+  border-radius: 50%;
+  transition: width 0.25s ease, height 0.25s ease, border-color 0.25s ease;
+}
+/* Marcações de focagem (ticks) do anel */
+.cursor-tick {
+  position: absolute;
+  width: 1px; height: 7px;
+  background: var(--ambar);
+  left: 50%; top: -3px;
+  transform-origin: 50% calc(50% + 22px);
+}
+.cursor-tick.t2 { transform: rotate(90deg); }
+.cursor-tick.t3 { transform: rotate(180deg); }
+.cursor-tick.t4 { transform: rotate(270deg); }
+.cursor-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--fonte-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ambar);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+/* Estado expandido (sobre itens clicáveis) */
+#cursor.ativo .cursor-ring {
+  width: 76px; height: 76px;
+  border-color: var(--teal);
+  animation: cursor-gira 4s linear infinite;
+}
+#cursor.ativo .cursor-tick { background: var(--teal); }
+#cursor.ativo .cursor-label { opacity: 1; }
+@keyframes cursor-gira {
+  from { rotate: 0deg; }
+  to { rotate: 360deg; }
+}
+
+/* === 06. PRELOADER ====================================================== */
+#preloader {
+  position: fixed; inset: 0;
+  z-index: 100;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+.iris { position: absolute; inset: 0; width: 100%; height: 100%; }
+.iris-blade {
+  fill: #0a0a0b;
+  stroke: rgba(255, 179, 71, 0.28);
+  stroke-width: 0.6;
+}
+.preloader-fstop {
+  position: relative;
+  font-family: var(--fonte-mono);
+  font-size: clamp(28px, 5vw, 52px);
+  font-weight: 700;
+  color: var(--ambar);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 30px rgba(255, 179, 71, 0.4);
+}
+.preloader-label {
+  position: absolute;
+  bottom: 12vh;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--cinza);
+  text-transform: uppercase;
+}
+
+/* === 07. COMPONENTES ==================================================== */
+
+/* Vídeo de fundo com fallback em gradiente (quando o mp4 ainda não existe) */
+.bgvideo-wrap { position: absolute; inset: 0; overflow: hidden; }
+.bgvideo {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.bgvideo.carregado { opacity: 1; }
+
+/* Gradiente animado de fallback — aparece atrás do vídeo */
+.video-fallback {
+  position: absolute; inset: -20%;
+  background:
+    radial-gradient(ellipse 60% 50% at 30% 40%, rgba(255, 179, 71, 0.16), transparent 60%),
+    radial-gradient(ellipse 50% 60% at 75% 65%, rgba(45, 212, 191, 0.12), transparent 60%),
+    linear-gradient(160deg, #0c0c10 0%, #050505 55%, #0a0806 100%);
+  animation: fallback-flutua 14s ease-in-out infinite alternate;
+}
+@keyframes fallback-flutua {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(3%, -3%) scale(1.06); }
+}
+/* Variações de cor por seção */
+.fallback-a { filter: hue-rotate(10deg); }
+.fallback-b { filter: hue-rotate(-25deg) brightness(1.1); }
+.fallback-c { filter: hue-rotate(35deg); }
+.fallback-d { filter: brightness(0.8); }
+
+/* Overlay radial escuro sobre os vídeos */
+.bg-overlay {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 90% 90% at 50% 45%, rgba(5, 5, 5, 0.25) 0%, rgba(5, 5, 5, 0.78) 100%),
+    linear-gradient(to top, rgba(5, 5, 5, 0.9) 0%, transparent 30%);
+}
+.overlay-forte {
+  background:
+    radial-gradient(ellipse 90% 90% at 50% 45%, rgba(5, 5, 5, 0.55) 0%, rgba(5, 5, 5, 0.9) 100%);
+}
+
+/* Botões */
+.btn {
+  display: inline-block;
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 1.1em 2.2em;
+  border: 1px solid var(--ambar);
+  position: relative;
+  overflow: hidden;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+.btn::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: var(--ambar);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s cubic-bezier(0.65, 0, 0.35, 1);
+  z-index: -1;
+}
+.btn:hover::before, .btn:focus-visible::before { transform: scaleX(1); }
+.btn-primary { color: var(--preto); background: var(--ambar); }
+.btn-primary::before { background: var(--branco); transform-origin: right; }
+.btn-primary:hover { border-color: var(--branco); }
+.btn-ghost { color: var(--ambar); }
+.btn-ghost:hover { color: var(--preto); }
+.btn-grande { font-size: 14px; padding: 1.3em 2.8em; }
+
+/* Títulos de seção */
+.sec-title {
+  font-family: var(--fonte-display);
+  font-weight: 700;
+  font-size: clamp(26px, 5vw, 56px);
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.sec-title em { font-style: normal; color: var(--ambar); }
+.sec-kicker {
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--teal);
+  text-transform: uppercase;
+  margin-top: 0.9em;
+}
+
+/* === 08. [1] HERO ======================================================= */
+.sec-hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* Marquee no topo */
+.marquee {
+  position: absolute;
+  top: clamp(52px, 8vh, 80px);
+  left: 0; right: 0;
+  overflow: hidden;
+  border-top: 1px solid var(--linha);
+  border-bottom: 1px solid var(--linha);
+  padding: 0.55em 0;
+  z-index: 2;
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: rgba(242, 239, 232, 0.6);
+  animation: letreiro 24s linear infinite;
+}
+@keyframes letreiro {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 0 var(--margem);
+  max-width: 1100px;
+}
+.hero-logo {
+  width: clamp(130px, 16vw, 210px);
+  height: auto;
+  margin: 0 auto clamp(8px, 2vh, 20px);
+  filter: drop-shadow(0 6px 30px rgba(0, 0, 0, 0.8));
+}
+.hero-title {
+  font-family: var(--fonte-display);
+  font-weight: 700;
+  font-size: clamp(38px, 9vw, 120px);
+  line-height: 1.02;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.hero-title span { display: block; }
+.hero-title span:last-child { color: transparent; -webkit-text-stroke: 1.5px var(--ambar); }
+.hero-sub {
+  margin: clamp(18px, 3vh, 30px) auto 0;
+  max-width: 640px;
+  font-size: clamp(11px, 1.4vw, 14px);
+  letter-spacing: 0.12em;
+  color: var(--cinza);
+  text-transform: uppercase;
+}
+.hero-ctas {
+  margin-top: clamp(26px, 4.5vh, 46px);
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Indicador de scroll: rolete de foco girando */
+.scroll-hint {
+  position: absolute;
+  bottom: clamp(56px, 9vh, 80px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--cinza);
+}
+.focus-wheel {
+  width: 64px; height: 18px;
+  border: 1px solid rgba(242, 239, 232, 0.3);
+  border-radius: 9px;
+  overflow: hidden;
+}
+.focus-wheel-track {
+  height: 100%;
+  width: 200%;
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0 6px,
+    rgba(255, 179, 71, 0.7) 6px 8px
+  );
+  animation: rolete 1.6s linear infinite;
+}
+@keyframes rolete { to { transform: translateX(-16px); } }
+
+/* === 09. [2] O ROLO ===================================================== */
+.sec-rolo { position: relative; background: var(--preto); }
+.rolo-pin {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(10px, 2vh, 22px);
+  padding: clamp(58px, 8vh, 88px) 0 clamp(30px, 5vh, 52px);
+  overflow: hidden;
+}
+.rolo-head { padding: 0 var(--margem); }
+
+.filmstrip-viewport { overflow: hidden; }
+.filmstrip {
+  display: flex;
+  align-items: center;
+  gap: clamp(22px, 3vw, 48px);
+  padding: 30px var(--margem) 52px;
+  width: max-content;
+  will-change: transform;
+  position: relative;
+}
+/* Furos de película em cima e embaixo do strip */
+.filmstrip::before, .filmstrip::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 12px;
+  background-image: radial-gradient(rgba(242, 239, 232, 0.22) 2.5px, transparent 3px);
+  background-size: 26px 12px;
+  background-position: 6px center;
+}
+.filmstrip::before { top: 2px; }
+.filmstrip::after { bottom: 2px; }
+
+/* No desktop o wrapper .filmcard-slide é "transparente" (vira item do flex);
+   no mobile ele vira uma tela inteira com scroll-snap (ver seção 14) */
+.filmcard-slide { display: contents; }
+
+/* Card do filmstrip (9:16) */
+.filmcard {
+  position: relative;
+  flex: none;
+  height: min(56vh, 540px);
+  aspect-ratio: 9 / 16;
+  background: var(--preto-2);
+  border: 1px solid var(--linha);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
+}
+.filmcard:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 44px rgba(255, 179, 71, 0.18), 0 20px 60px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+/* Cantoneiras de frame no card */
+.filmcard::before, .filmcard::after {
+  content: "";
+  position: absolute;
+  width: 16px; height: 16px;
+  z-index: 3;
+  pointer-events: none;
+}
+.filmcard::before {
+  top: -5px; left: -5px;
+  border-top: 2px solid var(--ambar);
+  border-left: 2px solid var(--ambar);
+}
+.filmcard::after {
+  bottom: -5px; right: -5px;
+  border-bottom: 2px solid var(--ambar);
+  border-right: 2px solid var(--ambar);
+}
+.filmcard video, .filmcard .card-placeholder {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+/* Placeholder animado quando o mp4 ainda não existe */
+.card-placeholder {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(255, 179, 71, 0.12), transparent 65%),
+    radial-gradient(ellipse 60% 50% at 50% 80%, rgba(45, 212, 191, 0.1), transparent 65%),
+    linear-gradient(200deg, #101014, #050505);
+  background-size: 100% 100%, 100% 100%, 300% 300%;
+  animation: placeholder-resp 6s ease-in-out infinite alternate;
+  font-family: var(--fonte-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--cinza);
+}
+@keyframes placeholder-resp { to { background-position: 0 0, 0 0, 100% 100%; } }
+
+/* Legendas do card */
+.card-cliente {
+  position: absolute;
+  top: -24px; left: 2px;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--teal);
+  text-transform: uppercase;
+}
+.card-rodape {
+  position: absolute;
+  bottom: -40px; left: 2px; right: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.card-titulo {
+  font-family: var(--fonte-display);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-tc {
+  font-size: 10px;
+  color: var(--cinza);
+  letter-spacing: 0.1em;
+  flex: none;
+}
+
+/* Régua de progresso estilo timeline */
+.rolo-ruler {
+  position: relative;
+  margin: clamp(12px, 2vh, 22px) var(--margem) 0;
+  height: 26px;
+  border-top: 1px solid var(--linha);
+}
+.ruler-ticks {
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    rgba(242, 239, 232, 0.25) 0 1px, transparent 1px 10%
+  ), repeating-linear-gradient(
+    to right,
+    rgba(242, 239, 232, 0.12) 0 1px, transparent 1px 2%
+  );
+  background-size: 100% 12px, 100% 7px;
+  background-repeat: no-repeat;
+}
+.ruler-playhead {
+  position: absolute;
+  top: -5px;
+  left: 0;
+  width: 2px;
+  height: 20px;
+  background: var(--ambar);
+  box-shadow: 0 0 12px var(--ambar);
+}
+.ruler-playhead::before {
+  content: "";
+  position: absolute;
+  top: -5px; left: -4px;
+  border: 5px solid transparent;
+  border-top-color: var(--ambar);
+}
+
+/* === 10. [3] COMO FUNCIONA ============================================== */
+.sec-processo { position: relative; }
+.processo-pin {
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
+}
+.painel {
+  position: absolute; inset: 0;
+  display: grid;
+  place-items: center;
+}
+/* Painéis 2 e 3 começam escondidos atrás de um iris wipe (clip-path animado via JS) */
+.painel-2, .painel-3 { clip-path: circle(0% at 50% 50%); }
+
+.painel-conteudo {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 0 var(--margem);
+  max-width: 760px;
+}
+.painel-num {
+  font-family: var(--fonte-mono);
+  font-size: clamp(60px, 12vw, 130px);
+  font-weight: 700;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 179, 71, 0.5);
+  line-height: 1;
+  display: block;
+}
+.painel-titulo {
+  font-family: var(--fonte-display);
+  font-weight: 700;
+  font-size: clamp(24px, 4.5vw, 52px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 0.3em;
+}
+.painel-texto {
+  margin: 1.6em auto 0;
+  max-width: 520px;
+  color: var(--cinza);
+  font-size: clamp(12px, 1.3vw, 14px);
+  letter-spacing: 0.06em;
+}
+
+/* === 11. [4] COMPARATIVO ================================================ */
+.sec-comparativo {
+  position: relative;
+  padding: clamp(90px, 14vh, 160px) var(--margem);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(45, 212, 191, 0.05), transparent 60%),
+    var(--preto);
+}
+.slate {
+  width: min(960px, 100%);
+  border: 1px solid var(--linha);
+  background: var(--preto-2);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+}
+/* Topo da claquete: listras diagonais */
+.slate-top {
+  height: 34px;
+  border-bottom: 1px solid var(--linha);
+  overflow: hidden;
+}
+.slate-stripes {
+  height: 100%;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--branco) 0 26px,
+    var(--preto) 26px 52px
+  );
+  opacity: 0.85;
+}
+.slate-head {
+  padding: clamp(26px, 4vw, 44px) clamp(22px, 4vw, 44px) 0;
+}
+.slate-table {
+  padding: clamp(22px, 3.5vw, 40px) clamp(22px, 4vw, 44px) clamp(28px, 4vw, 48px);
+}
+.slate-row {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr 1.2fr;
+  gap: 14px;
+  padding: 14px 4px;
+  border-bottom: 1px dashed var(--linha);
+  font-size: clamp(11px, 1.3vw, 13px);
+  letter-spacing: 0.08em;
+}
+.slate-row-head {
+  font-weight: 700;
+  color: var(--cinza);
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  border-bottom: 1px solid var(--linha);
+}
+.slate-row span:first-child { color: var(--cinza); }
+.col-av { color: var(--ambar); }
+.slate-row-head .col-av { color: var(--ambar); }
+
+/* === 12. [5] CRÉDITOS FINAIS =========================================== */
+.sec-creditos { position: relative; overflow: hidden; }
+.creditos-pin {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+.creditos-roll {
+  position: absolute;
+  left: 0; right: 0;
+  top: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1em;
+  will-change: transform;
+}
+.cred-label {
+  font-size: 10px;
+  letter-spacing: 0.35em;
+  color: var(--teal);
+  text-transform: uppercase;
+  margin-top: 1.6em;
+}
+.cred-nome {
+  font-family: var(--fonte-display);
+  font-size: clamp(14px, 2.2vw, 24px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.creditos-final {
+  text-align: center;
+  padding: 0 var(--margem);
+  opacity: 0;
+  transform: translateY(40px);
+}
+.cred-estrelando {
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  color: var(--teal);
+  text-transform: uppercase;
+}
+.cred-marca {
+  font-family: var(--fonte-display);
+  font-weight: 700;
+  font-size: clamp(40px, 8vw, 100px);
+  line-height: 1.05;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: 0.3em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--branco);
+}
+.cred-ctas {
+  margin-top: clamp(28px, 5vh, 48px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.cred-email {
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: var(--cinza);
+  border-bottom: 1px solid var(--linha);
+  padding-bottom: 3px;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+.cred-email:hover { color: var(--ambar); border-color: var(--ambar); }
+.rodape {
+  margin-top: clamp(40px, 8vh, 80px);
+  display: flex;
+  gap: 2em;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: rgba(242, 239, 232, 0.3);
+  text-transform: uppercase;
+}
+
+/* === 13. LIGHTBOX ======================================================= */
+.lightbox {
+  position: fixed; inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  /* O iris wipe de abertura/fechamento é um clip-path animado via JS */
+  clip-path: circle(0% at 50% 50%);
+}
+.lightbox[hidden] { display: none; }
+.lightbox-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(5, 5, 5, 0.9);
+  backdrop-filter: blur(6px);
+}
+.lightbox-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: clamp(22px, 4vw, 56px);
+  padding: 0 var(--margem);
+  max-width: 1100px;
+  width: 100%;
+  justify-content: center;
+}
+.lightbox-stage {
+  position: relative;
+  flex: none;
+  height: min(82vh, 760px);
+  aspect-ratio: 9 / 16;
+  background: #000;
+  border: 1px solid var(--linha);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.8);
+}
+.lightbox-stage video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.lightbox-placeholder {
+  position: absolute; inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  color: var(--cinza);
+  background: linear-gradient(200deg, #101014, #050505);
+}
+.lightbox-info { max-width: 300px; }
+.lb-cliente { font-size: 10px; letter-spacing: 0.3em; color: var(--teal); text-transform: uppercase; }
+.lb-titulo {
+  font-family: var(--fonte-display);
+  font-size: clamp(18px, 2.4vw, 28px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 0.5em;
+  line-height: 1.25;
+}
+.lb-meta { font-size: 11px; color: var(--cinza); letter-spacing: 0.15em; margin-top: 1em; }
+.lb-nav { display: flex; gap: 12px; margin-top: 2em; }
+.lb-btn {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  padding: 0.8em 1.4em;
+  border: 1px solid var(--linha);
+  transition: border-color 0.3s ease, color 0.3s ease;
+}
+.lb-btn:hover { border-color: var(--ambar); color: var(--ambar); }
+.lb-fechar {
+  position: absolute;
+  top: calc(-1 * clamp(30px, 6vh, 60px));
+  right: var(--margem);
+  font-size: 20px;
+  width: 48px; height: 48px;
+  border: 1px solid var(--linha);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transition: border-color 0.3s ease, color 0.3s ease, rotate 0.3s ease;
+}
+.lb-fechar:hover { border-color: var(--ambar); color: var(--ambar); rotate: 90deg; }
+
+/* === 14. MOBILE (<768px) ================================================ */
+@media (max-width: 768px) {
+  /* Noise pesado desligado; mantém só scanlines/vinheta bem leves */
+  .fx-noise { display: none; }
+  .fx-scanlines { opacity: 0.2; }
+  .hud-side, .hud-frame::before, .hud-frame::after { display: none; }
+  .hud { font-size: 9px; }
+
+  /* O ROLO vira feed vertical com scroll-snap (estilo Reels) */
+  .rolo-pin { min-height: 0; display: block; overflow: visible; }
+  .filmstrip-viewport { overflow: visible; }
+  .filmstrip {
+    flex-direction: column;
+    width: 100%;
+    gap: 0;
+    padding: 0;
+  }
+  .filmstrip::before, .filmstrip::after { display: none; }
+  .filmcard-slide {
+    /* wrapper de cada card: uma tela por vídeo */
+    display: grid;
+    height: 100svh;
+    width: 100%;
+    place-items: center;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .filmcard { height: min(72svh, 640px); }
+  .filmcard:hover { transform: none; box-shadow: none; }
+  .rolo-ruler { display: none; }
+  html.snap-rolo { scroll-snap-type: y proximity; }
+
+  /* Lightbox empilhado no mobile */
+  .lightbox-inner { flex-direction: column; gap: 18px; text-align: center; }
+  .lightbox-stage { height: min(64svh, 600px); }
+  .lightbox-info { max-width: none; }
+  .lb-nav { justify-content: center; }
+  .lb-fechar { top: 12px; right: 12px; position: fixed; background: rgba(5,5,5,0.6); }
+
+  /* Comparativo: colunas viram linhas */
+  .slate-row { grid-template-columns: 1fr; gap: 4px; padding: 16px 4px; }
+  .slate-row-head { display: none; }
+  .slate-row span::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: rgba(242, 239, 232, 0.35);
+    margin-bottom: 2px;
+  }
+}
+
+/* === 15. PREFERS-REDUCED-MOTION ========================================= */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  #preloader { display: none !important; }
+  /* Sem pin horizontal: o filmstrip vira scroll manual */
+  .filmstrip-viewport { overflow-x: auto; }
+  .reveal { opacity: 1 !important; transform: none !important; }
+  .painel-2, .painel-3 { clip-path: none; position: relative; }
+  .processo-pin { height: auto; }
+  .fx-noise, .marquee-track, .focus-wheel-track,
+  .rec-dot, .video-fallback, .card-placeholder {
+    animation: none !important;
+  }
+  .creditos-roll { display: none; }
+  .creditos-final { opacity: 1; transform: none; }
+  .lightbox { clip-path: none !important; }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARTVISION — Cinema sem set</title>
+  <meta name="description" content="ARTVISION — estúdio de criação de vídeos com IA. Comerciais cinematográficos gerados por inteligência artificial, dirigidos por gente de cinema e entregues em dias.">
+  <meta name="theme-color" content="#050505">
+
+  <!-- Tipografia: Syncopate (display) + JetBrains Mono (HUD / labels) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Se o JavaScript estiver desativado, esconde o preloader e o HUD -->
+  <noscript>
+    <style>
+      #preloader, #cursor { display: none !important; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+    </style>
+  </noscript>
+</head>
+<body>
+
+  <!-- ============================================================
+       [0] PRELOADER — íris de diafragma que abre revelando o hero
+       ============================================================ -->
+  <div id="preloader" aria-hidden="true">
+    <svg class="iris" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice">
+      <!-- 8 lâminas: cada <g> gira 45° em torno do centro; a lâmina interna
+           desliza para fora no seu próprio eixo quando a íris abre -->
+      <g transform="rotate(0 100 100)"><path class="iris-blade" d="M100,100 L300,-20 L300,220 Z"/></g>
+      <g transform="rotate(45 100 100)"><path class="iris-blade" d="M100,100 L300,-20 L300,220 Z"/></g>
+      <g transform="rotate(90 100 100)"><path class="iris-blade" d="M100,100 L300,-20 L300,220 Z"/></g>
+      <g transform="rotate(135 100 100)"><path class="iris-blade" d="M100,100 L300,-20 L300,220 Z"/></g>
+      <g transform="rotate(180 100 100)"><path class="iris-blade" d="M100,100 L300,-20 L300,220 Z"/></g>
+      <g transform="rotate(225 100 100)"><path class="iris-blade" d="M100,100 L300,-20 L300,220 Z"/></g>
+      <g transform="rotate(270 100 100)"><path class="iris-blade" d="M100,100 L300,-20 L300,220 Z"/></g>
+      <g transform="rotate(315 100 100)"><path class="iris-blade" d="M100,100 L300,-20 L300,220 Z"/></g>
+    </svg>
+    <div class="preloader-fstop" id="preloader-fstop">f/16</div>
+    <div class="preloader-label">ARTVISION · CALIBRANDO LENTE</div>
+  </div>
+
+  <!-- ============================================================
+       CAMADAS GLOBAIS FIXAS (pointer-events: none)
+       ============================================================ -->
+  <div class="fx-noise" aria-hidden="true"></div>
+  <div class="fx-scanlines" aria-hidden="true"></div>
+  <div class="fx-vignette" aria-hidden="true"></div>
+
+  <!-- HUD de câmera nos 4 cantos -->
+  <div class="hud" aria-hidden="true">
+    <div class="hud-corner hud-tl">
+      <span class="rec-dot" id="rec-dot"></span>
+      <span id="rec-label">REC</span>
+      <span id="hud-timecode">00:00:00:00</span>
+    </div>
+    <div class="hud-corner hud-tr">ISO 800 · f/1.4 · 24FPS</div>
+    <div class="hud-corner hud-bl" id="hud-section">001 — ABERTURA</div>
+    <div class="hud-corner hud-br">SHUTTER <span id="hud-shutter">0.00</span></div>
+    <div class="hud-side">ARTVISION — ESTÚDIO DE DIREÇÃO COM IA</div>
+    <div class="hud-frame"></div>
+  </div>
+
+  <!-- Cursor customizado: anel de foco (desativado em touch via JS/CSS) -->
+  <div id="cursor" aria-hidden="true">
+    <div class="cursor-ring">
+      <span class="cursor-tick t1"></span>
+      <span class="cursor-tick t2"></span>
+      <span class="cursor-tick t3"></span>
+      <span class="cursor-tick t4"></span>
+    </div>
+    <div class="cursor-label" id="cursor-label"></div>
+  </div>
+
+  <main id="conteudo">
+
+    <!-- ============================================================
+         [1] HERO — 001 ABERTURA
+         ============================================================ -->
+    <section class="sec-hero" id="abertura" data-hud="001 — ABERTURA">
+      <!-- Vídeo de fundo (bg/01.mp4). Se faltar, o gradiente .video-fallback aparece -->
+      <div class="bgvideo-wrap">
+        <div class="video-fallback"></div>
+        <video class="bgvideo" data-src="videos/bg/01.mp4" poster="videos/posters/bg-01.jpg"
+               muted loop playsinline preload="none"></video>
+        <div class="bg-overlay"></div>
+      </div>
+
+      <!-- Marquee / letreiro infinito no topo -->
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee-track" id="marquee-track">
+          <span>SOMOS DIRETORES CRIANDO COM IA&nbsp;·&nbsp;</span>
+          <span>SOMOS DIRETORES CRIANDO COM IA&nbsp;·&nbsp;</span>
+          <span>SOMOS DIRETORES CRIANDO COM IA&nbsp;·&nbsp;</span>
+          <span>SOMOS DIRETORES CRIANDO COM IA&nbsp;·&nbsp;</span>
+          <span>SOMOS DIRETORES CRIANDO COM IA&nbsp;·&nbsp;</span>
+          <span>SOMOS DIRETORES CRIANDO COM IA&nbsp;·&nbsp;</span>
+        </div>
+      </div>
+
+      <div class="hero-inner">
+        <img class="hero-logo reveal" src="img/logo.webp" alt="ARTVISION" width="1536" height="1024">
+        <!-- EDITE AQUI a headline principal -->
+        <h1 class="hero-title">
+          <span class="reveal">CINEMA</span>
+          <span class="reveal">SEM&nbsp;SET.</span>
+        </h1>
+        <!-- EDITE AQUI a subheadline -->
+        <p class="hero-sub reveal">// COMERCIAIS CINEMATOGRÁFICOS GERADOS POR IA.<br>
+           DIRIGIDOS POR GENTE DE CINEMA. ENTREGUES EM DIAS, NÃO MESES.</p>
+        <div class="hero-ctas reveal">
+          <a class="btn btn-primary" href="#rolo" data-cursor="PLAY">VER O ROLO</a>
+          <a class="btn btn-ghost" href="#creditos" data-cursor="FOCAR">FALAR COM A GENTE</a>
+        </div>
+      </div>
+
+      <!-- Indicador de scroll estilo rolete de foco -->
+      <div class="scroll-hint" aria-hidden="true">
+        <div class="focus-wheel"><div class="focus-wheel-track"></div></div>
+        <span>ROLE PARA FOCAR</span>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         [2] O ROLO — 002 — portfólio em filmstrip horizontal
+         (no mobile vira feed vertical com scroll-snap)
+         ============================================================ -->
+    <section class="sec-rolo" id="rolo" data-hud="002 — O ROLO">
+      <div class="rolo-pin">
+        <header class="rolo-head">
+          <h2 class="sec-title">O&nbsp;ROLO</h2>
+          <p class="sec-kicker">// TRABALHOS SELECIONADOS — CLIQUE PARA DAR PLAY</p>
+        </header>
+
+        <!-- O filmstrip é preenchido via JS a partir de js/portfolio.json -->
+        <div class="filmstrip-viewport">
+          <div class="filmstrip" id="filmstrip">
+            <!-- cards injetados aqui -->
+          </div>
+        </div>
+
+        <!-- Régua de progresso estilo timeline de edição -->
+        <div class="rolo-ruler" aria-hidden="true">
+          <div class="ruler-ticks"></div>
+          <div class="ruler-playhead" id="ruler-playhead"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         [3] COMO FUNCIONA — 003 — 3 painéis full-height com iris wipe
+         ============================================================ -->
+    <section class="sec-processo" id="processo" data-hud="003 — PROCESSO">
+      <div class="processo-pin">
+
+        <article class="painel painel-1">
+          <div class="bgvideo-wrap">
+            <div class="video-fallback fallback-a"></div>
+            <video class="bgvideo" data-src="videos/bg/02.mp4" muted loop playsinline preload="none"></video>
+            <div class="bg-overlay"></div>
+          </div>
+          <div class="painel-conteudo">
+            <span class="painel-num">01</span>
+            <h3 class="painel-titulo">BRIEFING</h3>
+            <!-- EDITE AQUI o texto do painel 1 -->
+            <p class="painel-texto">Você conta o que a marca precisa: produto, tom, referências.
+               A gente traduz isso num roteiro visual com decupagem de cenas,
+               como numa produtora de verdade.</p>
+          </div>
+        </article>
+
+        <article class="painel painel-2">
+          <div class="bgvideo-wrap">
+            <div class="video-fallback fallback-b"></div>
+            <video class="bgvideo" data-src="videos/bg/03.mp4" muted loop playsinline preload="none"></video>
+            <div class="bg-overlay"></div>
+          </div>
+          <div class="painel-conteudo">
+            <span class="painel-num">02</span>
+            <h3 class="painel-titulo">DIREÇÃO&nbsp;IA</h3>
+            <!-- EDITE AQUI o texto do painel 2 -->
+            <p class="painel-texto">Geramos cada plano com os melhores modelos de vídeo do mundo,
+               dirigindo luz, lente e movimento de câmera frame a frame —
+               até a cena parecer filmada, não gerada.</p>
+          </div>
+        </article>
+
+        <article class="painel painel-3">
+          <div class="bgvideo-wrap">
+            <div class="video-fallback fallback-c"></div>
+            <video class="bgvideo" data-src="videos/bg/04.mp4" muted loop playsinline preload="none"></video>
+            <div class="bg-overlay"></div>
+          </div>
+          <div class="painel-conteudo">
+            <span class="painel-num">03</span>
+            <h3 class="painel-titulo">ENTREGA</h3>
+            <!-- EDITE AQUI o texto do painel 3 -->
+            <p class="painel-texto">Edição, som e color no padrão broadcast.
+               Master em 16:9, 9:16 e 1:1, pronto pra TV, social e mídia paga.
+               Em dias. Com rodadas de revisão incluídas.</p>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ============================================================
+         [4] COMPARATIVO — 004 — claquete: tradicional vs artvision
+         ============================================================ -->
+    <section class="sec-comparativo" id="comparativo" data-hud="004 — COMPARATIVO">
+      <div class="slate">
+        <div class="slate-top" aria-hidden="true">
+          <div class="slate-stripes"></div>
+        </div>
+        <header class="slate-head">
+          <h2 class="sec-title">PRODUÇÃO TRADICIONAL<br><em>vs</em> NOSSO ESTÚDIO</h2>
+          <p class="sec-kicker">// CENA 04 — TOMADA ÚNICA</p>
+        </header>
+
+        <!-- EDITE AQUI as linhas do comparativo -->
+        <div class="slate-table" role="table" aria-label="Comparativo entre produção tradicional e ArtVision">
+          <div class="slate-row slate-row-head" role="row">
+            <span role="columnheader">ITEM</span>
+            <span role="columnheader">TRADICIONAL</span>
+            <span role="columnheader" class="col-av">ARTVISION</span>
+          </div>
+          <div class="slate-row" role="row">
+            <span role="cell" data-label="ITEM">CUSTO</span>
+            <span role="cell" data-label="TRADICIONAL">R$ 80–500 mil por filme</span>
+            <span role="cell" data-label="ARTVISION" class="col-av">Uma fração disso</span>
+          </div>
+          <div class="slate-row" role="row">
+            <span role="cell" data-label="ITEM">PRAZO</span>
+            <span role="cell" data-label="TRADICIONAL">6–12 semanas</span>
+            <span role="cell" data-label="ARTVISION" class="col-av">Dias, não meses</span>
+          </div>
+          <div class="slate-row" role="row">
+            <span role="cell" data-label="ITEM">REVISÕES</span>
+            <span role="cell" data-label="TRADICIONAL">Refilmar = novo orçamento</span>
+            <span role="cell" data-label="ARTVISION" class="col-av">Regerar a cena, sem diária</span>
+          </div>
+          <div class="slate-row" role="row">
+            <span role="cell" data-label="ITEM">FORMATOS</span>
+            <span role="cell" data-label="TRADICIONAL">Cada corte é um custo extra</span>
+            <span role="cell" data-label="ARTVISION" class="col-av">16:9 + 9:16 + 1:1 inclusos</span>
+          </div>
+          <div class="slate-row" role="row">
+            <span role="cell" data-label="ITEM">LOCAÇÃO / ELENCO</span>
+            <span role="cell" data-label="TRADICIONAL">Logística, clima, seguro</span>
+            <span role="cell" data-label="ARTVISION" class="col-av">Qualquer cenário, qualquer mundo</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         [5] CRÉDITOS FINAIS — 005 — CTA (REC vira CUT.)
+         ============================================================ -->
+    <section class="sec-creditos" id="creditos" data-hud="005 — CRÉDITOS">
+      <div class="bgvideo-wrap">
+        <div class="video-fallback fallback-d"></div>
+        <video class="bgvideo" data-src="videos/bg/05.mp4" muted loop playsinline preload="none"></video>
+        <div class="bg-overlay overlay-forte"></div>
+      </div>
+
+      <div class="creditos-pin">
+        <!-- Créditos que sobem (EDITE AQUI a lista de projetos/clientes) -->
+        <div class="creditos-roll" id="creditos-roll">
+          <p class="cred-label">UM FILME</p>
+          <p class="cred-nome">ARTVISION</p>
+          <p class="cred-label">DIREÇÃO CRIATIVA</p>
+          <p class="cred-nome">ESTÚDIO ARTVISION</p>
+          <p class="cred-label">PROJETOS</p>
+          <p class="cred-nome">RETRATO EM MOVIMENTO</p>
+          <p class="cred-nome">LUZ E TEXTURA</p>
+          <p class="cred-nome">GERAÇÃO 02</p>
+          <p class="cred-nome">CENA NOTURNA</p>
+          <p class="cred-label">CLIENTES</p>
+          <p class="cred-nome">CLIENTE 01 · CLIENTE 02</p>
+          <p class="cred-nome">CLIENTE 03 · CLIENTE 04</p>
+          <p class="cred-label">FERRAMENTAS</p>
+          <p class="cred-nome">OS MELHORES MODELOS DE VÍDEO DO MUNDO</p>
+        </div>
+
+        <!-- Fim dos créditos: congela aqui -->
+        <div class="creditos-final">
+          <p class="cred-estrelando">ESTRELANDO</p>
+          <h2 class="cred-marca">SUA MARCA<br>AQUI</h2>
+          <div class="cred-ctas">
+            <!-- EDITE AQUI: troque 5500000000000 pelo número do WhatsApp (com DDI) -->
+            <a class="btn btn-primary btn-grande" data-cursor="FOCAR"
+               href="https://wa.me/5500000000000?text=Quero%20um%20filme%20com%20a%20ArtVision"
+               target="_blank" rel="noopener">CHAMAR NO WHATSAPP</a>
+            <!-- EDITE AQUI o e-mail de contato -->
+            <a class="cred-email" data-cursor="FOCAR" href="mailto:contato@artvision.studio">contato@artvision.studio</a>
+          </div>
+          <footer class="rodape">
+            <span>© 2026 ARTVISION</span>
+            <span>FIM — OBRIGADO POR ASSISTIR</span>
+          </footer>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================================================
+       LIGHTBOX do portfólio (abre com iris wipe)
+       ============================================================ -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Player de vídeo" hidden>
+    <div class="lightbox-backdrop" id="lightbox-backdrop"></div>
+    <div class="lightbox-inner">
+      <figure class="lightbox-stage">
+        <video id="lightbox-video" controls playsinline preload="metadata"></video>
+        <div class="lightbox-placeholder" id="lightbox-placeholder" hidden>
+          <span>EM BREVE</span>
+        </div>
+      </figure>
+      <aside class="lightbox-info">
+        <p class="lb-cliente" id="lb-cliente">CLIENTE</p>
+        <h3 class="lb-titulo" id="lb-titulo">TÍTULO</h3>
+        <p class="lb-meta" id="lb-meta">TAG · 00:00</p>
+        <div class="lb-nav">
+          <button class="lb-btn" id="lb-prev" data-cursor="FOCAR" aria-label="Vídeo anterior">←&nbsp;ANT</button>
+          <button class="lb-btn" id="lb-next" data-cursor="FOCAR" aria-label="Próximo vídeo">PROX&nbsp;→</button>
+        </div>
+      </aside>
+      <button class="lb-fechar" id="lb-fechar" data-cursor="FOCAR" aria-label="Fechar">✕</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCRIPTS — GSAP + ScrollTrigger + Lenis via CDN
+       ============================================================ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

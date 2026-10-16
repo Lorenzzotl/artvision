@@ -1,0 +1,69 @@
+{
+  "comentario": "EDITE AQUI os itens do portfólio. 'arquivo' aponta para o mp4 vertical (9:16) dentro de /videos/vertical/. Se o arquivo não existir ainda, o site mostra um placeholder animado automaticamente.",
+  "itens": [
+    {
+      "arquivo": "videos/vertical/01.mp4",
+      "poster": "videos/posters/v-01.jpg",
+      "titulo": "RETRATO EM MOVIMENTO",
+      "cliente": "CLIENTE 01",
+      "tag": "COMERCIAL",
+      "duracao": "00:12"
+    },
+    {
+      "arquivo": "videos/vertical/02.mp4",
+      "poster": "videos/posters/v-02.jpg",
+      "titulo": "LUZ E TEXTURA",
+      "cliente": "CLIENTE 02",
+      "tag": "BRANDED CONTENT",
+      "duracao": "00:26"
+    },
+    {
+      "arquivo": "videos/vertical/03.mp4",
+      "poster": "videos/posters/v-03.jpg",
+      "titulo": "GERAÇÃO 02",
+      "cliente": "CLIENTE 03",
+      "tag": "SOCIAL",
+      "duracao": "00:10"
+    },
+    {
+      "arquivo": "videos/vertical/04.mp4",
+      "poster": "videos/posters/v-04.jpg",
+      "titulo": "CENA NOTURNA",
+      "cliente": "CLIENTE 04",
+      "tag": "FASHION FILM",
+      "duracao": "00:11"
+    },
+    {
+      "arquivo": "videos/vertical/05.mp4",
+      "poster": "",
+      "titulo": "PROJETO 05",
+      "cliente": "EM BREVE",
+      "tag": "COMERCIAL",
+      "duracao": "00:15"
+    },
+    {
+      "arquivo": "videos/vertical/06.mp4",
+      "poster": "",
+      "titulo": "PROJETO 06",
+      "cliente": "EM BREVE",
+      "tag": "PRODUTO",
+      "duracao": "00:20"
+    },
+    {
+      "arquivo": "videos/vertical/07.mp4",
+      "poster": "",
+      "titulo": "PROJETO 07",
+      "cliente": "EM BREVE",
+      "tag": "MÚSICA",
+      "duracao": "00:30"
+    },
+    {
+      "arquivo": "videos/vertical/08.mp4",
+      "poster": "",
+      "titulo": "PROJETO 08",
+      "cliente": "EM BREVE",
+      "tag": "COMERCIAL",
+      "duracao": "00:18"
+    }
+  ]
+}
