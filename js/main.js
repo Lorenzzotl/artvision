@@ -213,27 +213,43 @@
 
   // O hero fica pinado por um trecho de scroll e o currentTime do vídeo
   // acompanha o progresso: descer a página roda o vídeo, subir rebobina.
+  // Vale para desktop (vídeo 16:9) e celular (vídeo 9:16).
   // AJUSTE AQUI a "duração" do efeito mudando o end (+=160% = 1.6 telas).
   function ligarHeroScrub() {
     var vHero = document.querySelector(".sec-hero .bgvideo");
-    if (!vHero || MOBILE || REDUZIR) return;
+    if (!vHero || REDUZIR) return;
+
+    // Escolhe a fonte: 9:16 no celular (se existir), 16:9 no desktop
+    var usarMobile = MOBILE && vHero.dataset.srcMobile;
+    if (usarMobile && vHero.dataset.posterMobile) vHero.poster = vHero.dataset.posterMobile;
 
     // Carrega o vídeo já (sem autoplay — quem dá play é o scroll)
     vHero.dataset.scrub = "1"; // avisa ligarVideosDeFundo para ignorar este
     vHero.removeAttribute("loop");
     vHero.preload = "auto";
-    vHero.src = vHero.dataset.src;
+    vHero.src = usarMobile ? vHero.dataset.srcMobile : vHero.dataset.src;
     vHero.pause();
-    vHero.addEventListener("canplay", function () { vHero.classList.add("carregado"); }, { once: true });
+    // Visível desde já: o poster cobre o carregamento (e o caso de o
+    // celular bloquear vídeo, ex. Modo de Baixo Consumo)
+    vHero.classList.add("carregado");
     vHero.addEventListener("error", function () { vHero.remove(); }, { once: true });
+
+    // iOS só desenha frames de um vídeo pausado depois de um play();
+    // um play+pause mudo logo após os metadados "destrava" o decoder
+    vHero.addEventListener("loadedmetadata", function () {
+      var p = vHero.play();
+      if (p && p.then) p.then(function () { vHero.pause(); }).catch(function () {});
+      else vHero.pause();
+    }, { once: true });
 
     var tempoAlvo = 0;
 
     ScrollTrigger.create({
       trigger: ".sec-hero",
       start: "top top",
-      end: "+=160%",
+      end: MOBILE ? "+=130%" : "+=160%", // trecho menor no celular
       pin: true,
+      anticipatePin: 1,
       scrub: true,
       onUpdate: function (st) {
         if (vHero.duration) {
@@ -262,26 +278,8 @@
     if (REDUZIR) return; // reduced-motion: tudo parado com poster
 
     if (MOBILE) {
-      var vHero = document.querySelector(".sec-hero .bgvideo");
-      if (vHero && vHero.dataset.srcMobile) {
-        if (vHero.dataset.posterMobile) vHero.poster = vHero.dataset.posterMobile;
-        vHero.preload = "metadata";
-        vHero.src = vHero.dataset.srcMobile;
-        // Visível desde já: o poster 9:16 cobre o carregamento e também o
-        // caso de autoplay bloqueado (ex.: Modo de Baixo Consumo no iPhone).
-        // Se o mp4 não existir, o error abaixo remove o vídeo e volta o gradiente.
-        vHero.classList.add("carregado");
-        vHero.addEventListener("error", function () { vHero.remove(); }, { once: true });
-        // Toca quando visível, pausa quando o hero sai da tela
-        var ioHero = new IntersectionObserver(function (entradas) {
-          entradas.forEach(function (ent) {
-            if (!vHero.isConnected) return;
-            if (ent.isIntersecting) vHero.play().catch(function () {});
-            else vHero.pause();
-          });
-        }, { threshold: 0.1 });
-        ioHero.observe(vHero);
-      }
+      // O hero é tratado em ligarHeroScrub (scrub pelo scroll, fonte 9:16);
+      // os demais fundos ficam no poster/gradiente para economizar dados
       return;
     }
 
