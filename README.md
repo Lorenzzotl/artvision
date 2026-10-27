@@ -22,7 +22,7 @@ Landing page one-page cinematográfica do estúdio **ArtVision**. Site 100% est�
 
 - **Fundos 16:9** → solte os arquivos em `videos/bg/` como `01.mp4` … `06.mp4`
   - `01` = hero (desktop, controlado pelo scroll) · `02-04` = painéis "Como funciona" · `05` = créditos finais
-  - `01-mobile.mp4` = hero no celular (9:16, autoplay em loop)
+  - `01-mobile.mp4` = hero no celular (9:16, também controlado pelo scroll)
 - **Portfólio 9:16** → solte em `videos/vertical/` como `01.mp4` … `08.mp4`
 - **Posters** (imagem de capa, opcional) → `videos/posters/` (`bg-01.jpg`, `v-01.jpg` …)
 
